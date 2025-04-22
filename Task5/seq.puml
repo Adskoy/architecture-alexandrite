@@ -1,0 +1,53 @@
+@startuml
+
+actor user
+participant "MES API" as api
+participant "Data Access Layer" as dal
+participant "Cache" as cache
+database "PostgreSQL" as db
+
+== Префетч списка новых заказов ==
+
+alt Прогрев кэша
+    note right of cache
+        Вызов по таймеру и при запуске инстанса
+    end note
+    cache -> db : SELECT * FROM "Orders" WHERE "Status" = 'xxx'
+    db -> cache : Список одобренных заказов
+end
+
+alt Запрос
+    user -> api : GET /orders/latest
+    api -> dal : Обращение к репозиторию
+    note right of dal
+            Всегда cache hit
+    end note
+    dal -> cache : Поиск в кэше
+    cache -> dal : Список одобренных заказов
+    dal -> api : Список одобренных заказов
+    api -> user : JSON с заказами 
+end
+
+== Обновление статуса  ==
+
+user -> api : PUT /orders/{:id}/status/{:status}
+api -> dal : id, status
+dal -> cache : id
+alt cache hit
+    cache -> dal : Заказ
+else cache miss
+    cache -> db : SELECT * FROM "Orders" WHERE "Id"=@id LIMIT 1;
+    db -> cache : Заказ
+    cache -> dal : Заказ
+end
+    dal -> cache : Обновленный заказ
+    dal -> api : Обновленный заказ
+    api -> user : JSON с заказом
+    
+        note right of cache
+                Сливаем записи по таймеру или по батчу
+        end note
+    
+    cache -> db : UPDATE "Orders" SET .... WHERE "Id" = @id
+
+@enduml

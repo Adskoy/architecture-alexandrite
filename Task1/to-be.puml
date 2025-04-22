@@ -1,0 +1,85 @@
+@startuml
+title C4 Диаграмма контейнеров системы по производству ювелирных украшений
+left to right direction
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+skinparam linetype ortho
+
+Person(customer, "Клиент", "Частное лицо") #gray
+Person(manager, "Менеджер", "Управляет заказами в системе")
+Person(api_user, "Пользователь API", "B2B-клиент") #gray
+Person(operator, "Оператор", "Занимается изготовлением заказа")
+Person(admin, "Администратор", "Мониторит это дело")
+
+System_Ext(banking, "Платёжный шлюз", "Обработка оплаты заказа")
+System_Ext(mail, "Система рассылки писем", "SendGrid или типа того")
+System_Ext(delivery, "Транспортная компания", "Доставка изготовленного изделия")
+
+System_Boundary(target, "Система изготовления ювелирных изделий") {
+    System_Ext(otel, "Сервис наблюдения", "OpenObserve") #purple
+    Container(redis, "Распределенный кэш", "Redis/Garnet") #red    
+    Container(minio, "Хранилище 3D моделей", "Minio/S3") #crimson 
+    Container(marketplace, "Магазин", "Vue/Typescript", "Каталог продукции \n 3D-конструктор") #pink
+    Container(crm, "CRM", "Vue/Typescript", "Управление заказами") #pink
+    Container(mes_ui, "MES UI", "React/Typescript", "Управление заказами") #pink
+    Container(api, "API Gateway", "C#/Ocelot") #black
+    ContainerQueue(rabbit, "Шина сообщений", "RabbitMQ") #orange
+    Container(auth, "Сервис пользователей", "C#/ASP.NET")
+    ContainerDb(auth_db, "База пользователей и токенов", "PostgreSQL")
+    Rel(auth, auth_db, "")    
+    Container(shop, "Каталог продукции", "Java/Spting")
+    ContainerDb(shop_db, "База товаров", "PostgreSQL")
+    Rel(shop, shop_db, "")
+    Container(orders, "Каталог заказов", "Java/Spting")
+    ContainerDb(orders_db, "База товаров", "PostgreSQL")
+    Rel(orders, orders_db, "")
+    Container(mes, "MES API", "C#")
+    ContainerDb(mes_db, "База заказов MES", "PostgreSQL")
+    Rel(mes, mes_db, "")
+    Container(notifications, "Сервис уведомлений", "C#/ASP.NET")
+    Rel(notifications, mail, "")
+    Container(payment, "Платежный сервис", "C#/ASP.NET")
+    ContainerDb(payment_db, "База транзакций", "PostgreSQL")
+    Rel(payment, payment_db, "")
+    Rel(payment, banking, "Статус транзакции")
+    Rel(payment, rabbit,"")
+    Rel(orders, rabbit,"")
+    Rel(shop, rabbit,"")
+    Rel(mes, rabbit,"")
+    Rel(notifications, rabbit,"")
+    Rel(auth, rabbit,"")
+    Rel(api, payment,"")
+    Rel(api, orders,"")
+    Rel(api, shop,"")
+    Rel(api, mes,"")
+    Rel(api, auth,"")
+    Rel(api, notifications,"")
+    Rel(mes, minio,"")
+    Rel(shop, minio,"")
+    Rel(customer, marketplace, "Совершает заказы \n Моделирует всякое")
+    Rel(manager, crm, "Управляет заказами")
+    Rel(api_user, api, "Создает заказ в MES \n Загружает 3D модель")
+    Rel(operator, mes_ui, "Отслеживает изготовление заказов")
+    Rel(mes_ui, api, "")
+    Rel(marketplace, api, "")
+    Rel(crm, api, "")
+    Rel(shop, redis, "Кэширование списка товаров")
+    Rel(crm, redis, "Кэширование списка заказов")
+    Rel(mes, redis, "Кэширование списка заказов")
+    Rel(admin, otel, "Работа с логами/трэйсами/метриками")
+    
+    Rel(marketplace, otel, "")
+    Rel(crm, otel, "")
+    Rel(mes_ui, otel, "")
+    Rel(mes, otel, "")
+    Rel(shop, otel, "")
+    Rel(orders, otel, "")
+    Rel(notifications, otel, "")
+    Rel(payment, otel, "")
+    Rel(auth, otel, "")
+    
+    Rel(delivery, orders, "Уведомляет о статусе доставки")
+    Rel(mes, delivery, "Создает отправление")
+}
+
+
+@enduml
