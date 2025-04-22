@@ -7,14 +7,14 @@ title C4 Диаграмма компонентов для MES API
 left to right direction
 
 Container(webui, "Веб-интерфейс", "React", "") #pink
-Container(redis, "Распределенный кэш", "Redis/Garnet", "Кэширование частых запросов и показаний датчиков") #red
+'Container(redis, "Распределенный кэш", "Redis/Garnet", "Кэширование частых запросов и показаний датчиков") #red
 ContainerQueue(rabbit, "Брокер сообщений", "RabbitMQ", "") #orange
 Container(minio, "S3 бакет", "Minio", "Хранилище 3D моделей") #crimson
 Container(openobserve, "Система наблюдения", "Openobserve", "Логгинг, трейсинг и мониториг") #purple
 
 Container(db, "Managed PostgreSQL") {
-    ContainerDb(db1, "База сценариев", "Primary", "Write replica") #0078d7
-    ContainerDb(db2, "База сценариев", "Secondary", "Read replica") #0078d7
+    ContainerDb(db1, "База заказов", "Primary", "Write replica") #0078d7
+    ContainerDb(db2, "База заказов", "Secondary", "Read replica") #0078d7
     Rel(db1, db2, "Реплицируется")
 }
 
@@ -23,8 +23,10 @@ Container_Boundary(mes, "MES API") {
 
     Container(orders_controller, "Контроллер заказов", "ASP.NET Endpoints", "Read / Update заказов")
     Container(calc_controller, "Контроллер расчётов", "ASP.NET Endpoints", "Просмотр статуса расчёта стоимости заказа")
+    
     Rel(webui, orders_controller, "")
     Rel(webui, calc_controller, "")
+    Rel(webui, minio, "Читает модель")
     
     Container(orders_repository, "Репозиторий заказов")
     Rel(orders_controller, orders_repository, "")
